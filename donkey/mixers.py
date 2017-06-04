@@ -55,6 +55,8 @@ class DifferentialDriveMixer:
                 
         self.angle=0
         self.throttle=0
+        self.left_throttle=0
+        self.right_throttle=0
     
 
     def update(self, throttle, angle):
@@ -65,13 +67,13 @@ class DifferentialDriveMixer:
            self.stop()
         else:
             
-            l_speed = ((self.left_motor.speed + throttle)/3 - angle/5)
-            r_speed = ((self.right_motor.speed + throttle)/3 + angle/5)
-            l_speed = min(max(l_speed, -1), 1)
-            r_speed = min(max(r_speed, -1), 1)
+            l_speed = throttle/3 - angle/5
+            r_speed = throttle/3 + angle/5
+            self.left_throttle = min(max(l_speed, -1), 1)
+            self.right_throttle = min(max(r_speed, -1), 1)
             
-            self.left_motor.turn(l_speed)
-            self.right_motor.turn(r_speed)
+            self.left_motor.update(self.left_throttle)
+            self.right_motor.update(self.right_throttle)
             
             
     def test(self, seconds=1):
@@ -81,13 +83,13 @@ class DifferentialDriveMixer:
             
             self.update(*t)
             print('throttle: %s   angle: %s' % (self.throttle, self.angle))
-            print('l_speed: %s  r_speed: %s' % (self.left_motor.speed, 
-                                                self.right_motor.speed))
+            print('l_speed: %s  r_speed: %s' % (self.left_throttle, 
+                                                self.right_throttle))
             time.sleep(seconds)
             
         print('test complete')
         
         
     def stop(self):
-        self.left_motor.turn(0)
-        self.right_motor.turn(0)
+        self.left_motor.update(0)
+        self.right_motor.update(0)

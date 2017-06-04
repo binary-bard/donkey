@@ -121,6 +121,105 @@ class PWMThrottleActuator:
 
 
 
+class Differential_PassThrough_Controller:
+    ''' 
+    Generic Differential Pass Through Motor Controller 
+    For differential drive cars you need one controller for each side.
+    PassThrough means the RPi will pass it to its controller via serial interface
+    '''
+    #This is shared between instances
+    ser = None
+
+    def __init__(self, motor_num, device='/dev/ttyACM0', rate=115200):
+        import atexit, serial
+        # Initialise the serial connection from RPi to its controller
+        if self.ser is None:
+          try:
+            self.ser = serial.Serial(device, rate)
+          except:
+            print('Unable to open ' + device)
+
+        #Motor_num 0 for left, 1 for right
+        if motor_num == 0  or motor_num == 1:
+          self.motor_num = motor_num
+        else:
+          raise Exception("invalid motor number")
+        self.throttle = 0
+        atexit.register(self.set_pulse, pulse=0)
+    
+
+    def set_pulse(self, pulse):
+        '''
+        Required for caliberation
+        '''
+        self.turn(pulse)
+    
+
+    def turn(self, throttle):
+        '''
+        Update the speed of the motor
+        '''
+        
+        # Direction can be inferred by + or - so use 8bit range
+        #throttle = int(map_range(abs(speed), -1, 1, -127, 127))
+        if throttle == self.throttle:
+          return
+
+        self.throttle = throttle
+        if self.motor_num == 0:
+          msg = "L="
+        else:
+          msg = "R="
+        msg += str(self.throttle) + '\n'
+        print('\n' + msg)
+        self.ser.write(msg.encode())
+
+        
+    def test(self, seconds=.5):
+        speeds = [-.5, -1, -.5, 0, .5, 1, 0]
+        for s in speeds:
+            self.turn(s)
+            time.sleep(seconds)
+            print('speed: %s, throttle=self.throttle' % (s, self.throttle))
+        print('motor #%s test complete'% self.motor_num)
+        
+
+class PassThrough_Controller:
+    ''' 
+    Pass control over to motor controller over serial connection. 
+    '''
+    #This is shared between instances
+    ser = None
+
+    def __init__(self, channel, device='/dev/ttyACM0', rate=115200):
+        import atexit, serial
+        # Initialise the serial connection from RPi to its controller
+        if self.ser is None:
+          try:
+            self.ser = serial.Serial(device, rate)
+          except:
+            print('Unable to open ' + device)
+
+        self.lastVal = 0
+        #channel 0 for throttle and 1 for steering
+        if channel == 0  or channel == 1:
+          self.channel = channel
+        else:
+          raise Exception("invalid channel")
+        atexit.register(self.set_pulse, pulse=0)
+    
+    def set_pulse(self, pulse):
+        if pulse == self.lastVal:
+          return
+        if self.channel == 0:
+          msg = "TH="
+        else:
+          msg = "ST="
+        msg += str(pulse) + '\n'
+        print('\n' + msg)
+        self.ser.write(msg.encode())
+
+
 class Adafruit_Motor_Hat_Controller:
     ''' 
     Adafruit DC Motor Controller 
@@ -145,7 +244,7 @@ class Adafruit_Motor_Hat_Controller:
     def turn_off_motors(self):
         self.mh.getMotor(self.motor_num).run(Adafruit_MotorHAT.RELEASE)
 
-        
+
     def turn(self, speed):
         '''
         Update the speed of the motor where 1 is full forward and
