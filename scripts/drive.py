@@ -32,21 +32,24 @@ if __name__ == '__main__':
     cfg = dk.config.parse_config('~/mydonkey/vehicle.ini')
 
     #load the actuators (default is the adafruit servo hat)
-    mythrottlecontroller = dk.actuators.PCA9685_Controller(cfg['throttle_actuator_channel'])
-    mysteeringcontroller = dk.actuators.PCA9685_Controller(cfg['steering_actuator_channel'])
+    #mythrottlecontroller = dk.actuators.PassThrough_Controller(cfg['throttle_actuator_channel'])
+    #mysteeringcontroller = dk.actuators.PassThrough_Controller(cfg['steering_actuator_channel'])
+    myleftcontroller = dk.actuators.Differential_PassThrough_Controller(cfg['throttle_actuator_channel'])
+    myrightcontroller = dk.actuators.Differential_PassThrough_Controller(cfg['steering_actuator_channel'])
 
     #set the PWM ranges
-    mythrottle = dk.actuators.PWMThrottleActuator(controller=mythrottlecontroller, 
+    leftMotor = dk.actuators.PWMThrottleActuator(controller=myleftcontroller, 
                                                   min_pulse=cfg['throttle_actuator_min_pulse'],
                                                   max_pulse=cfg['throttle_actuator_max_pulse'],
                                                   zero_pulse=cfg['throttle_actuator_zero_pulse'])
 
-    mysteering = dk.actuators.PWMSteeringActuator(controller=mysteeringcontroller,
+    rightMotor = dk.actuators.PWMSteeringActuator(controller=myrightcontroller,
                                                   left_pulse=cfg['steering_actuator_min_pulse'],
                                                   right_pulse=cfg['steering_actuator_max_pulse'])
 
     #abstract class to combine actuators
-    mymixer = dk.mixers.AckermannSteeringMixer(mysteering, mythrottle)
+    #mymixer = dk.mixers.AckermannSteeringMixer(mysteering, mythrottle)
+    mymixer = dk.mixers.DifferentialDriveMixer(leftMotor, rightMotor)
 
     #asych img capture from picamera
     mycamera = dk.sensors.PiVideoStream()
