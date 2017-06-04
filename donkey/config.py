@@ -45,4 +45,9 @@ def parse_config(config_path):
     pilot = config['pilot']
     cfg['pilot_model_path'] = os.path.expanduser(pilot.get('model_path'))
 
+    cfg['serial_device'] = config.get('serial', 'device', fallback='/dev/ttyACM0')
+    cfg['serial_data_rate'] = config.getint('serial', 'data_rate', fallback=115200)
+
     return cfg
+
+

@@ -34,8 +34,10 @@ if __name__ == '__main__':
     #load the actuators (default is the adafruit servo hat)
     #mythrottlecontroller = dk.actuators.PassThrough_Controller(cfg['throttle_actuator_channel'])
     #mysteeringcontroller = dk.actuators.PassThrough_Controller(cfg['steering_actuator_channel'])
-    myleftcontroller = dk.actuators.Differential_PassThrough_Controller(cfg['throttle_actuator_channel'])
-    myrightcontroller = dk.actuators.Differential_PassThrough_Controller(cfg['steering_actuator_channel'])
+    myleftcontroller = dk.actuators.Differential_PassThrough_Controller(
+            cfg['throttle_actuator_channel'], cfg['serial_device'], cfg['serial_data_rate'])
+    myrightcontroller = dk.actuators.Differential_PassThrough_Controller(
+            cfg['steering_actuator_channel'], cfg['serial_device'], cfg['serial_data_rate'])
 
     #set the PWM ranges
     leftMotor = dk.actuators.PWMThrottleActuator(controller=myleftcontroller, 

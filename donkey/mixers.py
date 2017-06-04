@@ -66,9 +66,9 @@ class DifferentialDriveMixer:
         if throttle == 0 and angle == 0:
            self.stop()
         else:
-            
-            l_speed = throttle/3 - angle/5
-            r_speed = throttle/3 + angle/5
+            #This calculation is dependent on vehicle so we should separate it
+            l_speed = throttle/3 - angle
+            r_speed = throttle/3 + angle
             self.left_throttle = min(max(l_speed, -1), 1)
             self.right_throttle = min(max(r_speed, -1), 1)
             
