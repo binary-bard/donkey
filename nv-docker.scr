@@ -1,0 +1,37 @@
+# Docker script for running on linux/unix machines
+# This avoids having to run the docker as root and retains history
+# Also provides GPU and video access to docker machine
+
+# Keep docker history separate
+#cp /home/$USER/.bash_history /home/$USER/.history.shell
+#[ -f /home/$USER/.history.docker ] && cp /home/$USER/.history.docker /home/$USER/.bash_history
+
+devices=""
+for dvc in `ls /dev/video* /dev/media* /dev/nvidia* 2>/dev/null` ; do
+  devices="$devices --device=$dvc:$dvc"
+done
+
+volumes=
+for dir in `ls -d /mnt/*` ; do
+  volumes="$volumes --volume=$dir:$dir"
+done
+
+# I like to use X windows and keep a separate directory to map as home directory
+# under docker so it doesn't conflict with regular environment
+nvidia-docker run -it $devices \
+    --volume="/tmp/.X11-unix:/tmp/.X11-unix" \
+    -e DISPLAY=$DISPLAY \
+    --volume="/etc/group:/etc/group:ro" \
+    --volume="/etc/passwd:/etc/passwd:ro" \
+    --volume="/etc/shadow:/etc/shadow:ro" \
+    --volume="/home/$USER:/home/olduser" \
+    --volume="/home/docker:/home/$USER" \
+    --volume="/media/$USER:/media/$USER" \
+    --volume="/data:/data" $volumes \
+    --workdir="/home/$USER" \
+    --user=$(id -u $USER) \
+    $* 
+
+# Keep histories separate
+#cp /home/$USER/.bash_history /home/$USER/.history.docker
+#[ -f /home/$USER/.history.shell ] && cp /home/$USER/.history.shell /home/$USER/.bash_history
