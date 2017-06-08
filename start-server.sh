@@ -1,4 +1,4 @@
-#!bash
+#!/bin/bash
 
 #make directory that will be mounted in the docker instance.
 mkdir -p ~/mydonkey/models
@@ -13,7 +13,7 @@ if [ $HASVOL == 0 ]; then
 fi
 
 # Build if not already built
-HASIMAGE=$( docker image ls | grep donkey | wc -l )
+HASIMAGE=$( docker images ls | grep donkey | wc -l )
 if [ $HASIMAGE == 0 ]; then
 	echo "start-server: Building Donkey server image..." >&2
     docker build -t donkey .
@@ -37,7 +37,8 @@ while getopts ":vbd" opt; do
 		;;
     d)
 		echo "start-server: Running Donkey server container without serve.py and attaching..." >&2
-		docker run -p 8887:8887 -v ~/mydonkey:/root/mydonkey --entrypoint=/bin/bash -it donkey
+		#docker run -p 8887:8887 -v ~/mydonkey:/root/mydonkey --entrypoint=/bin/bash -it donkey
+		nv-docker.scr -p 8887:8887 -v ~/mydonkey:$HOME/mydonkey --entrypoint=/bin/bash donkey
 		exit
 		;;
     \?)
@@ -48,4 +49,5 @@ while getopts ":vbd" opt; do
 done
 
 echo "start-server: Running Donkey server container..." >&2
-docker run -it -p 8887:8887 -v ~/mydonkey:/root/mydonkey donkey
+#docker run -it -p 8887:8887 -v ~/mydonkey:/root/mydonkey donkey
+nvidia-docker run -it -p 8887:8887 -v ~/mydonkey:/root/mydonkey donkey
