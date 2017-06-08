@@ -32,26 +32,23 @@ if __name__ == '__main__':
     cfg = dk.config.parse_config('~/mydonkey/vehicle.ini')
 
     #load the actuators (default is the adafruit servo hat)
-    #mythrottlecontroller = dk.actuators.PassThrough_Controller(cfg['throttle_actuator_channel'])
-    #mysteeringcontroller = dk.actuators.PassThrough_Controller(cfg['steering_actuator_channel'])
-    myleftcontroller = dk.actuators.Differential_PassThrough_Controller(
-            cfg['throttle_actuator_channel'], cfg['serial_device'], cfg['serial_data_rate'])
-    myrightcontroller = dk.actuators.Differential_PassThrough_Controller(
-            cfg['steering_actuator_channel'], cfg['serial_device'], cfg['serial_data_rate'])
+    mythrottlecontroller = dk.actuators.PassThrough_Controller(
+             cfg['throttle_actuator_channel'], cfg['serial_device'], cfg['serial_data_rate'])
+    mysteeringcontroller = dk.actuators.PassThrough_Controller(
+             cfg['steering_actuator_channel'], cfg['serial_device'], cfg['serial_data_rate'])
 
     #set the PWM ranges
-    leftMotor = dk.actuators.PWMThrottleActuator(controller=myleftcontroller, 
+    mythrottle = dk.actuators.PWMThrottleActuator(controller=mythrottlecontroller, 
                                                   min_pulse=cfg['throttle_actuator_min_pulse'],
                                                   max_pulse=cfg['throttle_actuator_max_pulse'],
                                                   zero_pulse=cfg['throttle_actuator_zero_pulse'])
 
-    rightMotor = dk.actuators.PWMSteeringActuator(controller=myrightcontroller,
+    mysteering = dk.actuators.PWMSteeringActuator(controller=mysteeringcontroller,
                                                   left_pulse=cfg['steering_actuator_min_pulse'],
                                                   right_pulse=cfg['steering_actuator_max_pulse'])
 
     #abstract class to combine actuators
-    #mymixer = dk.mixers.AckermannSteeringMixer(mysteering, mythrottle)
-    mymixer = dk.mixers.DifferentialDriveMixer(leftMotor, rightMotor)
+    mymixer = dk.mixers.AckermannSteeringMixer(mysteering, mythrottle)
 
     #asych img capture from picamera
     mycamera = dk.sensors.PiVideoStream()

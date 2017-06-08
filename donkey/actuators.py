@@ -121,6 +121,57 @@ class PWMThrottleActuator:
 
 
 
+class SerialInterface:
+    ''' 
+    We need one instance of this class per device to control connection
+    '''
+
+    ser = None
+    logfile = None
+
+    def log_serial(self):
+      '''
+      We must read messages from serial device else we may get blocked io
+      '''
+      try:
+        while True:
+          #if self.ser.in_waiting():
+          line=self.ser.readline()
+          self.logfile.write(line)
+          time.sleep(.01)
+      except KeyboardInterrupt:
+        raise
+
+    def __init__(self, device='/dev/ttyACM0', rate=115200):
+        import atexit, serial, tempfile
+        from threading import Thread
+
+        #Create a logfile
+        if self.logfile is None:
+            self.logfile = tempfile.NamedTemporaryFile(prefix='ser_', dir='.', delete=False)
+
+        # Initialise the serial connection from RPi to its controller
+        if self.ser is None:
+          try:
+            self.ser = serial.Serial(device, rate)
+            #self.ser.reset_input_buffer()
+            self.thread = Thread(target = self.log_serial)
+            self.thread.start()
+            # Ask serial to not send debug messages
+            self.ser.write('n\n'.encode())
+
+          except:
+            print('Unable to open ' + device)
+            raise
+
+        atexit.register(self.cleanup)
+
+    def cleanup(self):
+        #self.thread.join()
+        self.logfile.close()
+        self.ser.close()
+
+
 class Differential_PassThrough_Controller:
     ''' 
     Generic Differential Pass Through Motor Controller 
@@ -128,22 +179,21 @@ class Differential_PassThrough_Controller:
     PassThrough means the RPi will pass it to its controller via serial interface
     '''
     #This is shared between instances
-    ser = None
+    serialInterf = None
 
     def __init__(self, motor_num, device='/dev/ttyACM0', rate=115200):
-        import atexit, serial
+        import atexit
+
         # Initialise the serial connection from RPi to its controller
-        if self.ser is None:
-          try:
-            self.ser = serial.Serial(device, rate)
-          except:
-            print('Unable to open ' + device)
+        if Differential_PassThrough_Controller.serialInterf is None:
+            Differential_PassThrough_Controller.serialInterf = SerialInterface(device, rate)
 
         #Motor_num 0 for left, 1 for right
         if motor_num == 0  or motor_num == 1:
           self.motor_num = motor_num
         else:
           raise Exception("invalid motor number")
+
         self.throttle = 0
         atexit.register(self.set_pulse, pulse=0)
     
@@ -171,8 +221,8 @@ class Differential_PassThrough_Controller:
         else:
           msg = "R="
         msg += str(self.throttle) + '\n'
-        print('\n' + msg)
-        self.ser.write(msg.encode())
+        #print('\n' + msg)
+        Differential_PassThrough_Controller.serialInterf.ser.write(msg.encode())
 
         
     def test(self, seconds=.5):
@@ -188,36 +238,37 @@ class PassThrough_Controller:
     ''' 
     Pass control over to motor controller over serial connection. 
     '''
-    #This is shared between instances
-    ser = None
+    serialInterf = None
 
     def __init__(self, channel, device='/dev/ttyACM0', rate=115200):
-        import atexit, serial
-        # Initialise the serial connection from RPi to its controller
-        if self.ser is None:
-          try:
-            self.ser = serial.Serial(device, rate)
-          except:
-            print('Unable to open ' + device)
+        import atexit
 
-        self.lastVal = 0
-        #channel 0 for throttle and 1 for steering
+        # Initialise the serial connection from RPi to its controller
+        if PassThrough_Controller.serialInterf is None:
+            PassThrough_Controller.serialInterf = SerialInterface(device, rate)
+
         if channel == 0  or channel == 1:
           self.channel = channel
         else:
           raise Exception("invalid channel")
+
+        self.lastVal = 0
+        # Ask serial to not send debug messages
+        PassThrough_Controller.serialInterf.ser.write('n\n'.encode())
+        #channel 0 for throttle and 1 for steering
         atexit.register(self.set_pulse, pulse=0)
     
+
     def set_pulse(self, pulse):
-        if pulse == self.lastVal:
-          return
+        #if pulse == self.lastVal:
+        #  return
         if self.channel == 0:
-          msg = "TH="
+          msg = "T="
         else:
-          msg = "ST="
+          msg = "S="
         msg += str(pulse) + '\n'
-        print('\n' + msg)
-        self.ser.write(msg.encode())
+        #print('\n' + msg)
+        PassThrough_Controller.serialInterf.ser.write(msg.encode())
 
 
 class Adafruit_Motor_Hat_Controller:
