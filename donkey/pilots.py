@@ -56,6 +56,31 @@ class KerasCategorical(BasePilot):
     def load(self):
         self.model = keras.models.load_model(self.model_path)
 
+class MyKerasCategorical(BasePilot):
+    def __init__(self, model_path, **kwargs):
+        self.model_path = model_path
+        print(self.model_path)
+        self.model = None #load() loads the model
+        super().__init__(**kwargs)
+
+    def decide(self, img_arr):
+        img_arr = img_arr.reshape((1,) + img_arr.shape)
+        # Classes {'rightin': 3, 'rightout': 4, 'middle': 2, 'leftin': 0, 'leftout': 1}
+        y = self.model.predict(img_arr)[0]
+        angle = round((y[0] - y[3])*1/3 + 2*(y[1] - y[4])/3, 2);
+        #print('\r')
+        print(round(y[1], 2), round(y[0], 2), round(y[2], 2), round(y[3], 2), round(y[4], 2), angle)
+        
+        #Fixed throttle for now
+        throttle = 0.6
+        
+        return angle, throttle
+
+
+    def load(self):
+        self.model = keras.models.load_model(self.model_path)
+        self.model.summary()
+
 
 
 class PilotHandler():
@@ -84,3 +109,4 @@ class PilotHandler():
         pilot_list = self.pilots_from_models()
         #pilot_list.append(OpenCVLineDetector(name='OpenCV'))
         return pilot_list
+
