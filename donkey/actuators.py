@@ -8,6 +8,7 @@ are wrapped in a mixer class before being used in the drive loop.
 
 import time
 import sys
+import serial, atexit
 
 
 def map_range(x, X_min, X_max, Y_min, Y_max):
@@ -133,17 +134,23 @@ class SerialInterface:
       '''
       We must read messages from serial device else we may get blocked io
       '''
-      try:
-        while True:
-          #if self.ser.in_waiting():
-          line=self.ser.readline()
-          self.logfile.write(line)
-          time.sleep(.01)
-      except KeyboardInterrupt:
-        raise
+      interrupted = False
+      while not interrupted:
+          try:
+            #if (self.ser.inWaiting() > 0):
+            line=self.ser.readline()
+            if len(line):
+                self.logfile.write(line)
+          except (serial.SerialException, serial.SerialTimeoutException):
+            pass   #Try again
+          except KeyboardInterrupt:
+            interrupted = True
+            cleanup()
+            raise
+
 
     def __init__(self, device='/dev/ttyACM0', rate=115200):
-        import atexit, serial, tempfile
+        import tempfile
         from threading import Thread
 
         #Create a logfile
@@ -158,7 +165,7 @@ class SerialInterface:
             self.thread = Thread(target = self.log_serial)
             self.thread.start()
             # Ask serial to not send debug messages
-            self.ser.write('n\n'.encode())
+            #self.ser.write('n\n'.encode())
 
           except:
             print('Unable to open ' + device)
@@ -166,8 +173,8 @@ class SerialInterface:
 
         atexit.register(self.cleanup)
 
+
     def cleanup(self):
-        #self.thread.join()
         self.logfile.close()
         self.ser.close()
 
@@ -182,8 +189,6 @@ class Differential_PassThrough_Controller:
     serialInterf = None
 
     def __init__(self, motor_num, device='/dev/ttyACM0', rate=115200):
-        import atexit
-
         # Initialise the serial connection from RPi to its controller
         if Differential_PassThrough_Controller.serialInterf is None:
             Differential_PassThrough_Controller.serialInterf = SerialInterface(device, rate)
@@ -223,6 +228,7 @@ class Differential_PassThrough_Controller:
         msg += str(self.throttle) + '\n'
         #print('\n' + msg)
         Differential_PassThrough_Controller.serialInterf.ser.write(msg.encode())
+        Differential_PassThrough_Controller.serialInterf.ser.flush()
 
         
     def test(self, seconds=.5):
@@ -241,8 +247,6 @@ class PassThrough_Controller:
     serialInterf = None
 
     def __init__(self, channel, device='/dev/ttyACM0', rate=115200):
-        import atexit
-
         # Initialise the serial connection from RPi to its controller
         if PassThrough_Controller.serialInterf is None:
             PassThrough_Controller.serialInterf = SerialInterface(device, rate)
@@ -269,6 +273,7 @@ class PassThrough_Controller:
         msg += str(pulse) + '\n'
         #print('\n' + msg)
         PassThrough_Controller.serialInterf.ser.write(msg.encode())
+        PassThrough_Controller.serialInterf.ser.flush()
 
 
 class Adafruit_Motor_Hat_Controller:
