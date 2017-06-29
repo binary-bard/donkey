@@ -65,8 +65,27 @@ class DifferentialDriveMixer:
            self.stop()
         else:
             #This calculation is dependent on vehicle so we should separate it
-            l_speed = ((self.left_throttle + throttle)/3 + angle/5)
-            r_speed = ((self.right_throttle + throttle)/3 - angle/5)
+            #l_speed = ((self.left_throttle + throttle)/3 + angle/5)
+            #r_speed = ((self.right_throttle + throttle)/3 - angle/5)
+            if angle < 0.1 and angle > -0.1:
+              l_speed = throttle
+              r_speed = throttle
+            if angle < 0.4 and angle > -0.4:
+              l_speed = 0.3 * throttle
+              r_speed = 0.8 * throttle
+            elif angle < 0.7 and angle > -0.7:
+              l_speed = 0
+              r_speed = 0.9 * throttle
+            else:
+              l_speed = 0.9 * throttle
+              r_speed = -0.6 * throttle
+
+            #Switch throttles if steering is -ve
+            if angle < 0:
+              temp = l_speed
+              l_speed = r_speed
+              r_speed = l_speed
+
             self.left_throttle = min(max(l_speed, -1), 1)
             self.right_throttle = min(max(r_speed, -1), 1)
             
@@ -77,8 +96,6 @@ class DifferentialDriveMixer:
     def test(self, seconds=1):
         telemetry = [(0, -.5), (0, -.5), (0, 0), (0, .5), (0, .5),  (0, 0), ]
         for t in telemetry:
-            
-            
             self.update(*t)
             print('throttle: %s   angle: %s' % (self.throttle, self.angle))
             print('l_speed: %s  r_speed: %s' % (self.left_throttle, 
