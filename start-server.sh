@@ -52,5 +52,4 @@ while getopts ":vbdg" opt; do
 done
 
 echo "start-server: Running Donkey server container..." >&2
-echo $docker_script run -it -p 8887:8887 -v ~/mydonkey:/root/mydonkey "$extra_args" donkey
-$docker_script run -it -p 8887:8887 -v ~/mydonkey:/root/mydonkey $extra_args donkey
+$docker_script run -it -p 8887:8887 -v ~/mydonkey:/root/mydonkey -v ~/sources/donkey:/donkey $extra_args donkey
