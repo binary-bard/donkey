@@ -8,22 +8,24 @@ mkdir -p ~/mydonkey/models
 # Create volume if not already there
 HASVOL=$( docker volume ls | grep mydonkey | wc -l )
 if [ $HASVOL == 0 ]; then
-	echo "start-server: Initializing Donkey server volume..." >&2
+    echo "start-server: Initializing Donkey server volume..." >&2
     docker volume create --name mydonkey
 fi
 
 # Build if not already built
-HASIMAGE=$( docker images ls | grep donkey | wc -l )
+HASIMAGE=$( docker images | grep donkey | wc -l )
 if [ $HASIMAGE == 0 ]; then
-	echo "start-server: Building Donkey server image..." >&2
+    echo "start-server: Building Donkey server image..." >&2
     docker build -t donkey .
 fi
 
 # Now check the arguments and accordingly build/initialize/run the server.
 
-while getopts ":vbd" opt; do
+docker_script="docker"
+extra_args=""
+while getopts ":vbdg" opt; do
   case $opt in
-  	v)
+    v)
 		if [ $HASVOL == 1 ]; then #means the volume existed, so it was not built
 			echo "start-server: Initializing Donkey server volume..." >&2
 			docker volume create --name mydonkey
@@ -37,9 +39,10 @@ while getopts ":vbd" opt; do
 		;;
     d)
 		echo "start-server: Running Donkey server container without serve.py and attaching..." >&2
-		#docker run -p 8887:8887 -v ~/mydonkey:/root/mydonkey --entrypoint=/bin/bash -it donkey
-		nv-docker.scr -p 8887:8887 -v ~/mydonkey:$HOME/mydonkey --entrypoint=/bin/bash donkey
-		exit
+                extra_args="--entrypoint=/bin/bash"
+		;;
+    g)
+                docker_script="nvidia-docker"
 		;;
     \?)
 		echo "start-server: Invalid option: -$OPTARG" >&2
@@ -49,5 +52,4 @@ while getopts ":vbd" opt; do
 done
 
 echo "start-server: Running Donkey server container..." >&2
-#docker run -it -p 8887:8887 -v ~/mydonkey:/root/mydonkey donkey
-nvidia-docker run -it -p 8887:8887 -v ~/mydonkey:/root/mydonkey donkey
+$docker_script run -it -p 8887:8887 -v ~/mydonkey:/root/mydonkey "$extra_args" donkey

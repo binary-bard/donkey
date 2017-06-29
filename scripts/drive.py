@@ -55,7 +55,7 @@ if __name__ == '__main__':
     myremote = dk.remotes.RemoteClient(remote_url, vehicle_id=cfg['vehicle_id'])
 
     #setup a local pilot
-    mypilot = dk.pilots.KerasCategorical(model_path=cfg['pilot_model_path'])
+    mypilot = dk.pilots.KerasPositionalCategorical(model_path=cfg['pilot_model_path'])
     mypilot.load()
 
     #Create your car
