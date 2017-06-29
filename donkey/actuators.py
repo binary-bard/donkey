@@ -140,7 +140,10 @@ class SerialInterface:
             #if (self.ser.inWaiting() > 0):
             line=self.ser.readline()
             if len(line):
+              if self.log:
                 self.logfile.write(line)
+              else:
+                print(line)
           except (serial.SerialException, serial.SerialTimeoutException):
             pass   #Try again
           except KeyboardInterrupt:
@@ -149,29 +152,48 @@ class SerialInterface:
             raise
 
 
-    def __init__(self, device='/dev/ttyACM0', rate=115200):
+    def __init__(self, device='/dev/ttyACM0', rate=115200, log=False):
         import tempfile
         from threading import Thread
 
+        self.log = log
+        self.firstTime = True
         #Create a logfile
-        if self.logfile is None:
+        if log and self.logfile is None:
             self.logfile = tempfile.NamedTemporaryFile(prefix='ser_', dir='.', delete=False)
 
         # Initialise the serial connection from RPi to its controller
+        #print("Initializing serial")
         if self.ser is None:
           try:
             self.ser = serial.Serial(device, rate)
-            #self.ser.reset_input_buffer()
+            #Read everything already in pipe and ignore
+            while (self.ser.inWaiting() > 0):
+              self.ser.readline()
             self.thread = Thread(target = self.log_serial)
             self.thread.start()
-            # Ask serial to not send debug messages
-            #self.ser.write('n\n'.encode())
+            print("Set car in driving mode")
 
           except:
             print('Unable to open ' + device)
             raise
 
         atexit.register(self.cleanup)
+
+
+    def send_msg(self, msg):
+      # Do this for only one channel
+      if self.firstTime:
+        # Ask serial to send debug messages
+        self.ser.write('d\n'.encode())
+        self.ser.flush()
+        self.ser.write('m=1\n'.encode())
+        self.ser.flush()
+        self.ser.write('n\n'.encode())
+        self.ser.flush()
+        self.firstTime = False
+      self.ser.write(msg.encode())
+      self.ser.flush()
 
 
     def cleanup(self):
@@ -227,8 +249,7 @@ class Differential_PassThrough_Controller:
           msg = "R="
         msg += str(self.throttle) + '\n'
         #print('\n' + msg)
-        Differential_PassThrough_Controller.serialInterf.ser.write(msg.encode())
-        Differential_PassThrough_Controller.serialInterf.ser.flush()
+        Differential_PassThrough_Controller.serialInterf.send_msg(msg)
 
         
     def test(self, seconds=.5):
@@ -257,8 +278,7 @@ class PassThrough_Controller:
           raise Exception("invalid channel")
 
         self.lastVal = 0
-        # Ask serial to not send debug messages
-        PassThrough_Controller.serialInterf.ser.write('n\n'.encode())
+
         #channel 0 for throttle and 1 for steering
         atexit.register(self.set_pulse, pulse=0)
     
@@ -272,8 +292,7 @@ class PassThrough_Controller:
           msg = "S="
         msg += str(pulse) + '\n'
         #print('\n' + msg)
-        PassThrough_Controller.serialInterf.ser.write(msg.encode())
-        PassThrough_Controller.serialInterf.ser.flush()
+        PassThrough_Controller.serialInterf.send_msg(msg)
 
 
 class Adafruit_Motor_Hat_Controller:

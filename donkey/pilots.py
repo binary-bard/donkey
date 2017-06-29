@@ -78,7 +78,7 @@ class KerasPositionalCategorical(BasePilot):
         #print('CAR: class: %s, conf: %.2f angle: %.2f' % (self.dir_map[idx], round(y[idx], 2), angle))
         
         #Fixed throttle for now
-        throttle = 0.6
+        throttle = 1
         
         return angle, throttle
 

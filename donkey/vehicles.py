@@ -9,7 +9,7 @@ import time
 
 class BaseVehicle:
     def __init__(self,
-                 drive_loop_delay = .5,
+                 drive_loop_delay = .05,
                  camera=None,
                  actuator_mixer=None,
                  pilot=None,
