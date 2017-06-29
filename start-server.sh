@@ -22,7 +22,7 @@ fi
 # Now check the arguments and accordingly build/initialize/run the server.
 
 docker_script="docker"
-extra_args=""
+extra_args=
 while getopts ":vbdg" opt; do
   case $opt in
     v)
@@ -52,4 +52,5 @@ while getopts ":vbdg" opt; do
 done
 
 echo "start-server: Running Donkey server container..." >&2
-$docker_script run -it -p 8887:8887 -v ~/mydonkey:/root/mydonkey "$extra_args" donkey
+echo $docker_script run -it -p 8887:8887 -v ~/mydonkey:/root/mydonkey "$extra_args" donkey
+$docker_script run -it -p 8887:8887 -v ~/mydonkey:/root/mydonkey $extra_args donkey
