@@ -121,7 +121,6 @@ class PWMThrottleActuator:
         return '123'
 
 
-
 class SerialInterface:
     ''' 
     We need one instance of this class per device to control connection
@@ -137,15 +136,21 @@ class SerialInterface:
       interrupted = False
       while not interrupted:
           try:
-            #if (self.ser.inWaiting() > 0):
-            line=self.ser.readline()
-            if len(line):
-              if self.log:
-                self.logfile.write(line)
-              else:
-                print(line)
-          except (serial.SerialException, serial.SerialTimeoutException):
+            if self.ser is None or self.ser.in_waiting <= 0:
+              time.sleep(0.01)
+            else:
+              line=self.ser.readline()
+              if len(line):
+                if self.log:
+                  self.logfile.write(line)
+                else:
+                  print(line)
+
+          except (serial.SerialException, serial.serialutil.SerialException,
+                  serial.SerialTimeoutException):
+            time.sleep(0.01)
             pass   #Try again
+
           except KeyboardInterrupt:
             interrupted = True
             cleanup()
@@ -157,32 +162,64 @@ class SerialInterface:
         from threading import Thread
 
         self.log = log
-        self.firstTime = True
         #Create a logfile
         if log and self.logfile is None:
             self.logfile = tempfile.NamedTemporaryFile(prefix='ser_', dir='.', delete=False)
 
         # Initialise the serial connection from RPi to its controller
-        #print("Initializing serial")
         if self.ser is None:
-          try:
-            self.ser = serial.Serial(device, rate)
-            #Read everything already in pipe and ignore
-            while (self.ser.inWaiting() > 0):
-              self.ser.readline()
-            self.thread = Thread(target = self.log_serial)
-            self.thread.start()
-            print("Set car in driving mode")
+            #Don't open the port yet
+            self.ser = serial.Serial()
+            self.ser.port = device
+            self.ser.baudrate = rate
+            self.ser.timeout = 0
+            self.inWrite = False
+            self.firstTime = True
 
-          except:
-            print('Unable to open ' + device)
-            raise
+        else:
+          print("Serial is already open")
 
         atexit.register(self.cleanup)
 
 
+    def openDevice(self):
+        devices = ['/dev/ttyACM0', '/dev/ttyACM1']
+        for device in devices:
+          try:
+            self.ser.port = device
+            self.ser.open()
+            #Wait for arduino to reset
+            time.sleep(2)
+            if not self.ser.is_open:
+              self.ser.close()
+            else:
+              #Read everything already in pipe and ignore
+              self.ser.flushInput()
+              #self.ser.reset_input_buffer()
+              return
+
+          except serial.SerialException:
+            print('Unable to open ' + device)
+
+        # If we reached here, none of the ports was opened
+        raise serial.SerialException
+
     def send_msg(self, msg):
       # Do this for only one channel
+      if self.ser is None:
+        print("Serial device is not open")
+        return
+
+      if not self.ser.is_open:
+        self.openDevice()
+
+      if not self.ser.is_open:
+        print("Serial device could not be opened")
+        return
+
+      while self.inWrite:
+        time.sleep(0.001)
+      self.inWrite = True
       if self.firstTime:
         # Ask serial to send debug messages
         self.ser.write('d\n'.encode())
@@ -194,6 +231,7 @@ class SerialInterface:
         self.firstTime = False
       self.ser.write(msg.encode())
       self.ser.flush()
+      self.inWrite = False
 
 
     def cleanup(self):
@@ -207,6 +245,7 @@ class Differential_PassThrough_Controller:
     For differential drive cars you need one controller for each side.
     PassThrough means the RPi will pass it to its controller via serial interface
     '''
+
     #This is shared between instances
     serialInterf = None
 
@@ -265,6 +304,7 @@ class PassThrough_Controller:
     ''' 
     Pass control over to motor controller over serial connection. 
     '''
+
     serialInterf = None
 
     def __init__(self, channel, device='/dev/ttyACM0', rate=115200):
