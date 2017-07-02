@@ -61,6 +61,7 @@ class KerasPositionalCategorical(BasePilot):
         self.model_path = model_path
         self.model = None #load() loads the model
         self.dir_map = {0: 'center_leftin', 1: 'center_leftout', 2: 'center_middle', 3: 'center_rightin', 4: 'center_rightout', 5: 'left30_leftin', 6: 'left30_leftout', 7: 'left30_middle', 8: 'left30_rightin', 9: 'left30_rightout', 10: 'right30_leftin', 11: 'right30_leftout', 12: 'right30_middle', 13: 'right30_rightin', 14: 'right30_rightout'}
+        self.acc_angle = 0.
         super().__init__(**kwargs)
 
     def decide(self, img_arr):
@@ -69,18 +70,20 @@ class KerasPositionalCategorical(BasePilot):
         #Prediction will have high probability for one class mostly
         idx = np.argmax(y)
         #If camera angle is in center, turn left or right to get the car in center position
-        angle = round((2*y[1] + y[0] - y[3] - 2*y[4])/3, 2);
-        #If camera angle is in left, we need to turn right to correct angle but if we are already 
-        #on right, we need to turn left to fix angle but adjust to position
-        angle += round((3*y[6] + 2*y[5] + y[7] - y[9])/3, 2);
-        #on left, we need to turn right to fix angle but adjust to position
-        angle += round((y[11] - y[12] - 2*y[13] - 3*y[14])/3, 2);
-        #print('CAR: class: %s, conf: %.2f angle: %.2f' % (self.dir_map[idx], round(y[idx], 2), angle))
+        angle = 0. + 2*y[1] + y[0] - y[3] - 2*y[4];
+        #If camera angle is in left, we need to turn right to correct angle 
+        #on left position, we need to turn right to adjust position
+        #and vice versa
+        angle += 3*y[6] + 2*y[5] + y[7] - y[9];
+        angle += y[11] - y[12] - 2*y[13] - 3*y[14];
         
+        #Accumulate angle by number of samples to keep a moving average
+        nSamples = 8
+        self.acc_angle = ((nSamples - 1.)*self.acc_angle + angle)/nSamples
         #Fixed throttle for now
         throttle = 1
         
-        return angle, throttle
+        return round(self.acc_angle/3, 2), throttle
 
 
     def load(self):

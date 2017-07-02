@@ -29,11 +29,24 @@ if __name__ == '__main__':
     #get the url for the remote host (for user control)
     remote_url = args['--remote']
 
+    #asych img capture from picamera
+    mycamera = dk.sensors.PiVideoStream()
+    
+    #setup the remote host
+    myremote = dk.remotes.RemoteClient(remote_url, vehicle_id=cfg['vehicle_id'])
+
+    #setup a local pilot
+    mypilot = dk.pilots.KerasPositionalCategorical(model_path=cfg['pilot_model_path'])
+    mypilot.load()
+
     #load the actuators (default is the adafruit servo hat)
-    mythrottlecontroller = dk.actuators.PassThrough_Controller(
-             cfg['throttle_actuator_channel'], cfg['serial_device'], cfg['serial_data_rate'])
-    mysteeringcontroller = dk.actuators.PassThrough_Controller(
-             cfg['steering_actuator_channel'], cfg['serial_device'], cfg['serial_data_rate'])
+    mythrottlecontroller = dk.actuators.PCA9685_Controller(cfg['throttle_actuator_channel'])
+    mysteeringcontroller = dk.actuators.PCA9685_Controller(cfg['steering_actuator_channel'])
+
+    #mythrottlecontroller = dk.actuators.PassThrough_Controller(
+    #         cfg['throttle_actuator_channel'], cfg['serial_device'], cfg['serial_data_rate'])
+    #mysteeringcontroller = dk.actuators.PassThrough_Controller(
+    #         cfg['steering_actuator_channel'], cfg['serial_device'], cfg['serial_data_rate'])
 
     #set the PWM ranges
     mythrottle = dk.actuators.PWMThrottleActuator(controller=mythrottlecontroller, 
@@ -47,16 +60,6 @@ if __name__ == '__main__':
 
     #abstract class to combine actuators
     mymixer = dk.mixers.AckermannSteeringMixer(mysteering, mythrottle)
-
-    #asych img capture from picamera
-    mycamera = dk.sensors.PiVideoStream()
-    
-    #setup the remote host
-    myremote = dk.remotes.RemoteClient(remote_url, vehicle_id=cfg['vehicle_id'])
-
-    #setup a local pilot
-    mypilot = dk.pilots.KerasPositionalCategorical(model_path=cfg['pilot_model_path'])
-    mypilot.load()
 
     #Create your car
     car = dk.vehicles.BaseVehicle(drive_loop_delay=cfg['vehicle_loop_delay'],
