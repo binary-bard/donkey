@@ -40,13 +40,13 @@ if __name__ == '__main__':
     mypilot.load()
 
     #load the actuators (default is the adafruit servo hat)
-    mythrottlecontroller = dk.actuators.PCA9685_Controller(cfg['throttle_actuator_channel'])
-    mysteeringcontroller = dk.actuators.PCA9685_Controller(cfg['steering_actuator_channel'])
+    #mythrottlecontroller = dk.actuators.PCA9685_Controller(cfg['throttle_actuator_channel'])
+    #mysteeringcontroller = dk.actuators.PCA9685_Controller(cfg['steering_actuator_channel'])
 
-    #mythrottlecontroller = dk.actuators.PassThrough_Controller(
-    #         cfg['throttle_actuator_channel'], cfg['serial_device'], cfg['serial_data_rate'])
-    #mysteeringcontroller = dk.actuators.PassThrough_Controller(
-    #         cfg['steering_actuator_channel'], cfg['serial_device'], cfg['serial_data_rate'])
+    mythrottlecontroller = dk.actuators.PassThrough_Controller(
+             cfg['throttle_actuator_channel'], cfg['serial_device'], cfg['serial_data_rate'])
+    mysteeringcontroller = dk.actuators.PassThrough_Controller(
+             cfg['steering_actuator_channel'], cfg['serial_device'], cfg['serial_data_rate'])
 
     #set the PWM ranges
     mythrottle = dk.actuators.PWMThrottleActuator(controller=mythrottlecontroller, 
