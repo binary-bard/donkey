@@ -76,12 +76,18 @@ class KerasPositionalCategorical(BasePilot):
         #and vice versa
         angle += 3*y[6] + 2*y[5] + y[7] - y[9];
         angle += y[11] - y[12] - 2*y[13] - 3*y[14];
-        
+
         #Accumulate angle by number of samples to keep a moving average
         nSamples = 8
         self.acc_angle = ((nSamples - 1.)*self.acc_angle + angle)/nSamples
-        #Fixed throttle for now
-        throttle = 1
+
+        # Change throttle according to the angle
+        if abs(angle) > 0.6:
+          throttle = 0.4
+        elif abs(angle) > 0.35:
+          throttle = 0.6
+        else:
+          throttle = 1.0
         
         return round(self.acc_angle/3, 2), throttle
 
