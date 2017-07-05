@@ -17,18 +17,22 @@ height=480
 [ $# -ge 2 ] && width=$2
 [ $# -eq 3 ] && height=$3
 
+echo "To do the recording, set the required camera angle."
+echo "Then, position the car at asked positions and move it along that position around the track."
+echo "out means just outside that lane, in means in the middle of that lane"
+echo "and center means on the center line."
+
 for cam_pos in center left30 right30 ; do
-  echo "Move the car around setting the camera in $cam_pos. Press enter when ready"
+  echo "Set Camera angle: $cam_pos"
+  echo "Press enter when ready. You will be asked to set position next"
   read input
 
   for pos in rightout rightin middle leftin leftout ; do
-    echo "Position the car at $pos and move it along that position around the track."
-    echo "out means just outside that lane, in means in the middle of that lane"
-    echo "and center means on the center line."
-    echo "Press enter when ready and Ctrl+C to stop recoding when done"
+    echo "Set car to position: $pos"
+    echo "Press enter when ready"
     read input
     saveDir="$1/$cam_pos/$pos"
-    echo $saveDir
+    echo "Saving video to $saveDir. Press Ctrl+C to stop recoding when done"
     mkdir -p $saveDir
     raspivid -t 0 -w $width -h $height -o $saveDir/$(date +"%Y_%m_%d_%I_%M_%p").h264
   done
