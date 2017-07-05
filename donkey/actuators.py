@@ -224,7 +224,7 @@ class SerialInterface:
         # Ask serial to send debug messages
         self.ser.write('d\n'.encode())
         self.ser.flush()
-        self.ser.write('m=1\n'.encode())
+        self.ser.write('m=3\n'.encode())
         self.ser.flush()
         self.ser.write('n\n'.encode())
         self.ser.flush()
