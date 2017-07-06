@@ -69,13 +69,22 @@ class KerasPositionalCategorical(BasePilot):
         y = self.model.predict(img_arr)[0]
         #Prediction will have high probability for one class mostly
         idx = np.argmax(y)
+        #print("\rPrediction = ", self.dir_map[idx])
+
         #If camera angle is in center, turn left or right to get the car in center position
-        angle = 0. + 2*y[1] + y[0] - y[3] - 2*y[4];
+        # Our steering effects are non-linear so use that
+        #angle = 0. + 2*y[1] + y[0] - y[3] - 2*y[4];
         #If camera angle is in left, we need to turn right to correct angle 
         #on left position, we need to turn right to adjust position
         #and vice versa
-        angle += 3*y[6] + 2*y[5] + y[7] - y[9];
-        angle += y[11] - y[12] - 2*y[13] - 3*y[14];
+        #angle += 3*y[6] + 2*y[5] + y[7] - y[9];
+        #angle += y[11] - y[12] - 2*y[13] - 3*y[14];
+
+        #Positions: lin, lout, mid, rin, rout
+        mult = [ .4, .6,  0., -.4, -.6,  # angle = center
+                 .6, .8,  .4,  .2, -.3,  # angle = left30
+                -.2, .3, -.4, -.6, -.8]  # angle = right30
+        angle =np.inner(y, mult)
 
         #Accumulate angle by number of samples to keep a moving average
         nSamples = 8
@@ -89,7 +98,7 @@ class KerasPositionalCategorical(BasePilot):
         else:
           throttle = 1.0
         
-        return round(self.acc_angle/3, 2), throttle
+        return round(self.acc_angle, 2), throttle
 
 
     def load(self):
