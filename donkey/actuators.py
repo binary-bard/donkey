@@ -177,6 +177,7 @@ class SerialInterface:
             self.inWrite = False
             self.firstTime = True
             print("Serial device to open", device)
+            self.openDevice()
 
         else:
           print("Serial is already open")
@@ -188,13 +189,13 @@ class SerialInterface:
         #devices = [self.ser.port, '/dev/ttyACM0', '/dev/ttyACM1']
         #for device in devices:
         try:
-            self.ser.port = device
+            #self.ser.port = device
             self.ser.open()
             #Wait for arduino to reset
             time.sleep(2)
             if not self.ser.is_open:
               self.ser.close()
-           else:
+            else:
               #Read everything already in pipe and ignore
               self.ser.flushInput()
               #self.ser.reset_input_buffer()
@@ -212,9 +213,9 @@ class SerialInterface:
         print("Serial device doesn't exist")
         return
 
-      if not self.ser.is_open:
-        print("Serial device is not open, opening")
-        self.openDevice()
+      #if not self.ser.is_open:
+      #  print("Serial device is not open")
+      #  self.openDevice()
 
       if not self.ser.is_open:
         print("Serial device could not be opened")
@@ -228,7 +229,7 @@ class SerialInterface:
           # Ask serial to send debug messages
           self.ser.write('d\n'.encode())
           self.ser.flush()
-          self.ser.write('m=3\n'.encode())
+          self.ser.write('m=2\n'.encode())
           self.ser.flush()
           self.ser.write('n\n'.encode())
           self.ser.flush()
@@ -243,7 +244,8 @@ class SerialInterface:
 
 
     def cleanup(self):
-        self.logfile.close()
+        if self.logfile is not None:
+           self.logfile.close()
         self.ser.close()
 
 
