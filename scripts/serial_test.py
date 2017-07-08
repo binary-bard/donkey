@@ -9,13 +9,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-d', '--device', default='/dev/serial0', help="Device to use for serial connection")
 parser.add_argument('-l', '--logfile', default=None, help="Log file to use")
 args = parser.parse_args()
-print("Args are", args.device, args.logfile)
 
 try:
-  #ser = serial.Serial('/dev/ttyACM0', 115200)
-  #ser = serial.Serial('/dev/serial0', 115200)
   ser = serial.Serial(args.device, 115200)
-  #ser = serial.Serial('/dev/ttyAMA0', 115200)
 except:
   print("Failed to open serial port", args.device)
   quit()
@@ -26,9 +22,10 @@ if args.logfile is not None:
   logging.Formatter(fmt='%(asctime)s.%(msecs)03d %(message)s', datefmt='%H:%M:%S')
 
 if ser.is_open:
-  print(ser.name, "is open")
+  print(ser.name, "opened")
 
 sleep(2)
+ser.flushInput()
 inputAvailable = False
 entry = ""
 bCont = True
@@ -46,8 +43,6 @@ def run_test():
  
 
 def output_function():
-  #bCont1 = True
-  #while bCont1:
   global bCont
   while bCont:
     try:
@@ -63,14 +58,10 @@ def output_function():
       print("Exception happened")
       pass
     except KeyboardInterrupt:
-      #bCont1 = False
       bCont = False
-      #raise
 
 thread = Thread(target = output_function)
 thread.start()
-#bCont2 = True
-#while bCont2:
 while bCont:
   try:
     entry = input("Print value to send: ");
@@ -100,10 +91,9 @@ while bCont:
       entry = ""
 
   except KeyboardInterrupt:
-    #bCont2 = False
     bCont = False
-    ser.write('th=0'.encode())
-    #raise
+    ser.write('t=0'.encode())
+    ser.write('s=0'.encode())
 
 thread.join()
 ser.close()
