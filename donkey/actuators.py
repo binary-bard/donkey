@@ -157,7 +157,8 @@ class SerialInterface:
             raise
 
 
-    def __init__(self, device='/dev/ttyACM0', rate=115200, log=False):
+    #def __init__(self, device='/dev/ttyACM0', rate=115200, log=False):
+    def __init__(self, device='/dev/serial0', rate=115200, log=False):
         import tempfile
         from threading import Thread
 
@@ -175,6 +176,7 @@ class SerialInterface:
             self.ser.timeout = 0
             self.inWrite = False
             self.firstTime = True
+            print("Serial device to open", device)
 
         else:
           print("Serial is already open")
@@ -183,23 +185,23 @@ class SerialInterface:
 
 
     def openDevice(self):
-        devices = ['/dev/ttyACM0', '/dev/ttyACM1']
-        for device in devices:
-          try:
+        #devices = [self.ser.port, '/dev/ttyACM0', '/dev/ttyACM1']
+        #for device in devices:
+        try:
             self.ser.port = device
             self.ser.open()
             #Wait for arduino to reset
             time.sleep(2)
             if not self.ser.is_open:
               self.ser.close()
-            else:
+           else:
               #Read everything already in pipe and ignore
               self.ser.flushInput()
               #self.ser.reset_input_buffer()
               return
 
-          except serial.SerialException:
-            print('Unable to open ' + device)
+        except serial.SerialException:
+            print('Failed to open ' + device)
 
         # If we reached here, none of the ports was opened
         raise serial.SerialException
@@ -207,10 +209,11 @@ class SerialInterface:
     def send_msg(self, msg):
       # Do this for only one channel
       if self.ser is None:
-        print("Serial device is not open")
+        print("Serial device doesn't exist")
         return
 
       if not self.ser.is_open:
+        print("Serial device is not open, opening")
         self.openDevice()
 
       if not self.ser.is_open:
@@ -220,17 +223,22 @@ class SerialInterface:
       while self.inWrite:
         time.sleep(0.001)
       self.inWrite = True
-      if self.firstTime:
-        # Ask serial to send debug messages
-        self.ser.write('d\n'.encode())
+      try:
+        if self.firstTime:
+          # Ask serial to send debug messages
+          self.ser.write('d\n'.encode())
+          self.ser.flush()
+          self.ser.write('m=3\n'.encode())
+          self.ser.flush()
+          self.ser.write('n\n'.encode())
+          self.ser.flush()
+          self.firstTime = False
+        self.ser.write(msg.encode())
         self.ser.flush()
-        self.ser.write('m=3\n'.encode())
-        self.ser.flush()
-        self.ser.write('n\n'.encode())
-        self.ser.flush()
-        self.firstTime = False
-      self.ser.write(msg.encode())
-      self.ser.flush()
+
+      except serial.SerialException:
+        print("Failed to write to Serial device")
+
       self.inWrite = False
 
 
@@ -249,7 +257,8 @@ class Differential_PassThrough_Controller:
     #This is shared between instances
     serialInterf = None
 
-    def __init__(self, motor_num, device='/dev/ttyACM0', rate=115200):
+    #def __init__(self, motor_num, device='/dev/ttyACM0', rate=115200):
+    def __init__(self, motor_num, device='/dev/serial0', rate=115200):
         # Initialise the serial connection from RPi to its controller
         if Differential_PassThrough_Controller.serialInterf is None:
             Differential_PassThrough_Controller.serialInterf = SerialInterface(device, rate)
@@ -307,7 +316,8 @@ class PassThrough_Controller:
 
     serialInterf = None
 
-    def __init__(self, channel, device='/dev/ttyACM0', rate=115200):
+    #def __init__(self, channel, device='/dev/ttyACM0', rate=115200):
+    def __init__(self, channel, device='/dev/serial0', rate=115200):
         # Initialise the serial connection from RPi to its controller
         if PassThrough_Controller.serialInterf is None:
             PassThrough_Controller.serialInterf = SerialInterface(device, rate)

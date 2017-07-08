@@ -3,11 +3,35 @@
 import serial
 from threading import Thread
 from time import sleep
+import argparse, logging
 
-ser = serial.Serial('/dev/ttyACM0',115200)
+parser = argparse.ArgumentParser()
+parser.add_argument('-d', '--device', default='/dev/serial0', help="Device to use for serial connection")
+parser.add_argument('-l', '--logfile', default=None, help="Log file to use")
+args = parser.parse_args()
+print("Args are", args.device, args.logfile)
+
+try:
+  #ser = serial.Serial('/dev/ttyACM0', 115200)
+  #ser = serial.Serial('/dev/serial0', 115200)
+  ser = serial.Serial(args.device, 115200)
+  #ser = serial.Serial('/dev/ttyAMA0', 115200)
+except:
+  print("Failed to open serial port", args.device)
+  quit()
+
+if args.logfile is not None:
+  logging.basicConfig(filename=args.logfile, level=logging.DEBUG)
+  #logging.basicConfig(filename=args.logfile, level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+  logging.Formatter(fmt='%(asctime)s.%(msecs)03d %(message)s', datefmt='%H:%M:%S')
+
+if ser.is_open:
+  print(ser.name, "is open")
+
 sleep(2)
 inputAvailable = False
 entry = ""
+bCont = True
 
 def run_test():
   ser.write('m=1\n'.encode())
@@ -22,20 +46,32 @@ def run_test():
  
 
 def output_function():
-  bCont1 = True
-  while bCont1:
+  #bCont1 = True
+  #while bCont1:
+  global bCont
+  while bCont:
     try:
       read_serial=ser.readline()
-      print(read_serial)
+      if len(read_serial):
+        if args.logfile is not None:
+          logging.info(read_serial)
+        else:
+          print(read_serial)
+
       #sleep(.02)
+    except serial.SerialException:
+      print("Exception happened")
+      pass
     except KeyboardInterrupt:
-      bCont1 = False
-      raise
+      #bCont1 = False
+      bCont = False
+      #raise
 
 thread = Thread(target = output_function)
 thread.start()
-bCont2 = True
-while bCont2:
+#bCont2 = True
+#while bCont2:
+while bCont:
   try:
     entry = input("Print value to send: ");
     if len(entry):
@@ -64,9 +100,11 @@ while bCont2:
       entry = ""
 
   except KeyboardInterrupt:
-    bCont2 = False
+    #bCont2 = False
+    bCont = False
     ser.write('th=0'.encode())
-    raise
+    #raise
 
 thread.join()
+ser.close()
 print('Done')
