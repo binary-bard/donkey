@@ -11,6 +11,8 @@ if [ ! -x $capture_cmd ] ; then
   ls -l $capture_cmd && echo "Error: Please check execute permissions for $capture_cmd. This script relies on it."
   exit 2
 fi
+
+rundir=`dirname $0`
 #saveDir=$1
 width=640
 height=480
@@ -36,6 +38,6 @@ for cam_pos in center left30 right30 ; do
     mkdir -p $saveDir
     #raspivid -t 0 -w $width -h $height -o $saveDir/$(date +'%Y_%m_%d_%I_%M_%p').h264
     cmd="raspivid -t 0 -w $width -h $height -o $saveDir/$(date +'%Y_%m_%d_%I_%M_%p').h264"
-    python scripts/capture_sensor_data.py -r "$cmd"
+    python $rundir/capture_sensor_data.py -l $saveDir/$(date +'%Y_%m_%d_%I_%M_%p').log -r "$cmd"
   done
 done

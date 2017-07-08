@@ -22,10 +22,7 @@ if args.logfile is not None:
   #logging.basicConfig(filename=args.logfile, level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
   logging.Formatter(fmt='%(asctime)s.%(msecs)03d %(message)s', datefmt='%H:%M:%S')
 
-if ser.is_open:
-  print(ser.name, "opened")
-
-sleep(2)
+sleep(1)
 ser.flushInput()
 inputAvailable = False
 bCont = True
@@ -43,7 +40,6 @@ def output_function():
 
       #sleep(.02)
     except serial.SerialException:
-      print("Exception happened")
       pass
     except KeyboardInterrupt:
       bCont = False
@@ -61,9 +57,13 @@ ser.write('m=2'.encode())
 ser.flush()
 
 #Run script to capture videos
-print(args.record_cmd.split())
-subprocess.call(args.record_cmd.split())
+try:
+  subprocess.call(args.record_cmd.split())
+except KeyboardInterrupt:
+  pass
 
-thread.join()
+bCont = False
+#print("subprocess quit")
+#thread.join()
 ser.close()
 
