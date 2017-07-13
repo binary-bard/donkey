@@ -7,3 +7,5 @@ data/*
 .DS_Store
 lag_log.csv
 .spyproject
+.idea
+__pycache__
