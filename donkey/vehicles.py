@@ -38,6 +38,9 @@ class BaseVehicle:
             #get image array image from camera (threaded)
             img_arr = self.camera.capture_arr()
 
+            # User mode post our RC data to server?
+            angle, throttle = self.actuator_mixer.getValues()
+
             angle, throttle, drive_mode = self.remote.decide_threaded(img_arr,
                                                  angle, 
                                                  throttle,
@@ -50,7 +53,8 @@ class BaseVehicle:
                 #only update angle from local pilot
                 angle, _ = self.pilot.decide(img_arr)
 
-            self.actuator_mixer.update(throttle, angle)
+            if drive_mode != 'user_local':
+              self.actuator_mixer.update(throttle, angle)
 
             #print current car state
             end = time.time()
