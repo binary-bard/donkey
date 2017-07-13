@@ -65,8 +65,6 @@ class KerasPositionalCategorical(BasePilot):
         super().__init__(**kwargs)
 
     def decide(self, img_arr):
-        print("pilot decide called")
-
         img_arr = img_arr.reshape((1,) + img_arr.shape)
         y = self.model.predict(img_arr)[0]
         #Prediction will have high probability for one class mostly

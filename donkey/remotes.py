@@ -79,7 +79,6 @@ class RemoteClient():
                                 self.state['milliseconds'],)
             angle, throttle, drive_mode = resp
 
-            self.state['angle'] = 1.0
             self.state['drive_mode'] = drive_mode
             if self.state['drive_mode'] != 'user_local':
                 self.state['angle'] = angle
@@ -132,7 +131,7 @@ class RemoteClient():
                 #try to reconnect every 3 seconds
                 print("\n Vehicle could not connect to server. Make sure you've " + 
                     "started your server and you're referencing the right port.")
-                time.sleep(3)
+                time.sleep(0.3)
             
             except (requests.exceptions.ReadTimeout) as err:
                 #Lower throttle if their is a long lag.
@@ -324,7 +323,6 @@ class DriveAPI(tornado.web.RequestHandler):
 
         V = self.application.get_vehicle(vehicle_id)
 
-        print("DriveAPI called")
         data = tornado.escape.json_decode(self.request.body)
         angle = data['angle']
         throttle = data['throttle']
