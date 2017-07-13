@@ -492,6 +492,7 @@ class SessionListView(tornado.web.RequestHandler):
         '''    
 
         session_dirs = [f for f in os.scandir(self.application.sessions_path) if f.is_dir() ]
+        session_dirs.sort(key=lambda x: -os.path.getmtime(x))
         data = {'session_dirs': session_dirs}
         self.render("templates/session_list.html", **data)
 
