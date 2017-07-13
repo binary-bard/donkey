@@ -79,11 +79,13 @@ class RemoteClient():
                                 self.state['milliseconds'],)
             angle, throttle, drive_mode = resp
 
-            #update sate with current values
-            self.state['angle'] = angle
-            self.state['throttle'] = throttle
+            self.state['angle'] = 1.0
             self.state['drive_mode'] = drive_mode
-            time.sleep(.02)
+            if self.state['drive_mode'] != 'user_local':
+                self.state['angle'] = angle
+                self.state['throttle'] = throttle
+
+            time.sleep(.01)
 
 
     def decide_threaded(self, img_arr, angle, throttle, milliseconds):
@@ -92,6 +94,10 @@ class RemoteClient():
         '''
         #update the state's image
         self.state['img_arr'] = img_arr
+
+        if self.state['drive_mode'] == 'user_local':
+            self.state['angle'] = angle
+            self.state['throttle'] = throttle
 
         #return last returned last remote response.
         return self.state['angle'], self.state['throttle'], self.state['drive_mode']
@@ -140,9 +146,10 @@ class RemoteClient():
         #print('remote lag: %s' %lag)
 
         data = json.loads(r.text)
-        angle = float(data['angle'])
-        throttle = float(data['throttle'])
         drive_mode = str(data['drive_mode'])
+        if drive_mode != 'user_local':
+            angle = float(data['angle'])
+            throttle = float(data['throttle'])
         
         return angle, throttle, drive_mode
 
@@ -317,6 +324,7 @@ class DriveAPI(tornado.web.RequestHandler):
 
         V = self.application.get_vehicle(vehicle_id)
 
+        print("DriveAPI called")
         data = tornado.escape.json_decode(self.request.body)
         angle = data['angle']
         throttle = data['throttle']
@@ -354,17 +362,27 @@ class ControlAPI(tornado.web.RequestHandler):
         img = Image.open(io.BytesIO(img))
         img_arr = dk.utils.img_to_arr(img)
 
+        dataStr = self.request.files['json'][0]['body']
+        data = tornado.escape.json_decode(dataStr)
 
         #Get angle/throttle from pilot loaded by the server.
         if V['pilot'] is not None:
-            pilot_angle, pilot_throttle = V['pilot'].decide(img_arr)
-        else: 
+            if V['drive_mode'] != 'user_local':
+                pilot_angle, pilot_throttle = V['pilot'].decide(img_arr)
+            else:
+                pilot_angle, pilot_throttle = float(data['angle']), float(data['throttle'])
+            #print(V['user_angle'], V['user_throttle'])
+            V['user_angle'] = pilot_angle
+            V['user_throttle'] = pilot_angle
+
+        else:
             print('no pilot')
             pilot_angle, pilot_throttle = 0.0, 0.0
 
         V['img'] = img
         V['pilot_angle'] = pilot_angle
         V['pilot_throttle'] = pilot_throttle
+
 
         #depending on the drive mode, return user or pilot values
 

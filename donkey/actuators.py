@@ -226,13 +226,14 @@ class SerialInterface:
       self.inWrite = True
       try:
         if self.firstTime:
+          # We no longer have to do this
           # Ask serial to send debug messages
-          self.ser.write('d\n'.encode())
-          self.ser.flush()
-          self.ser.write('m=2\n'.encode())
-          self.ser.flush()
-          self.ser.write('n\n'.encode())
-          self.ser.flush()
+          #self.ser.write('d\n'.encode())
+          #self.ser.flush()
+          #self.ser.write('m=2\n'.encode())
+          #self.ser.flush()
+          #self.ser.write('n\n'.encode())
+          #self.ser.flush()
           self.firstTime = False
         self.ser.write(msg.encode())
         self.ser.flush()
