@@ -31,42 +31,16 @@ if __name__ == '__main__':
 
     #asych img capture from picamera
     mycamera = dk.sensors.PiVideoStream()
-    
-    #setup the remote host
-    myremote = dk.remotes.RemoteClient(remote_url, vehicle_id=cfg['vehicle_id'])
+
+    # No need for actuators or controllers for SerialPassthroughMixer
+    mymixer = dk.mixers.SerialPassthroughMixer(cfg)
 
     #setup a local pilot
     mypilot = dk.pilots.KerasPositionalCategorical(model_path=cfg['pilot_model_path'])
     mypilot.load()
-
-    #load the actuators (default is the adafruit servo hat)
-    #mythrottlecontroller = dk.actuators.PCA9685_Controller(cfg['throttle_actuator_channel'])
-    #mysteeringcontroller = dk.actuators.PCA9685_Controller(cfg['steering_actuator_channel'])
-
-    #mythrottlecontroller = dk.actuators.PassThrough_Controller(
-    #         cfg['throttle_actuator_channel'], cfg['serial_device'], cfg['serial_data_rate'])
-    #mysteeringcontroller = dk.actuators.PassThrough_Controller(
-    #         cfg['steering_actuator_channel'], cfg['serial_device'], cfg['serial_data_rate'])
-
-    #set the PWM ranges
-    #mythrottle = dk.actuators.PWMThrottleActuator(controller=mythrottlecontroller,
-    #                                              min_pulse=cfg['throttle_actuator_min_pulse'],
-    #                                              max_pulse=cfg['throttle_actuator_max_pulse'],
-    #                                              zero_pulse=cfg['throttle_actuator_zero_pulse'])
-
-    #mysteering = dk.actuators.PWMSteeringActuator(controller=mysteeringcontroller,
-    #                                              left_pulse=cfg['steering_actuator_min_pulse'],
-    #                                              right_pulse=cfg['steering_actuator_max_pulse'])
-
-    #abstract class to combine actuators
-    #mymixer = dk.mixers.AckermannSteeringMixer(mysteering, mythrottle)
-    mymixer = dk.mixers.SerialPassthroughMixer(device = cfg['serial_device'],
-                                               rate = cfg['serial_data_rate'],
-                                               min_pulse=cfg['throttle_actuator_min_pulse'],
-                                               max_pulse=cfg['throttle_actuator_max_pulse'],
-                                               zero_pulse=cfg['throttle_actuator_zero_pulse'],
-                                               left_pulse=cfg['steering_actuator_min_pulse'],
-                                               right_pulse=cfg['steering_actuator_max_pulse'])
+    
+    #setup the remote host
+    myremote = dk.remotes.RemoteClient(remote_url, vehicle_id=cfg['vehicle_id'])
 
     #Create your car
     car = dk.vehicles.BaseVehicle(drive_loop_delay=cfg['vehicle_loop_delay'],

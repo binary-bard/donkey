@@ -151,12 +151,21 @@ class SerialPassthroughMixer(BaseMixer):
           if len(line):
             match = self.line_re.search(line)
             if match is not None:
-              self.currentStateDict = ast.literal_eval(match.group(1))
+              try:
+                newDict = ast.literal_eval(match.group(1))
+                self.currentStateDict = newDict
+              except:
+                pass
             #self.logfile.write(line)
 
       except (serial.SerialException, serial.serialutil.SerialException,
               serial.SerialTimeoutException):
+        print('Serial error in log_serial')
         time.sleep(0.01)
+        pass  # Try again
+
+      except UnicodeDecodeError:
+        print('Unicode error in log_serial')
         pass  # Try again
 
       except KeyboardInterrupt:
@@ -164,59 +173,73 @@ class SerialPassthroughMixer(BaseMixer):
         cleanup()
         raise
 
-  def __init__(self, device='/dev/serial0', rate=115200, left_pulse=290, right_pulse=490,
-               max_pulse=300, min_pulse=490, zero_pulse=350):
+  def __init__(self, cfg):
     import tempfile
     from threading import Thread
+
+    device = cfg['serial_device']
+    rate = cfg['serial_data_rate']
+    self.left_pulse=cfg['steering_actuator_min_pulse']
+    self.right_pulse=cfg['steering_actuator_max_pulse']
+    self.steering_zero=cfg['steering_actuator_zero_pulse']
+    self.steering_range=cfg['steering_actuator_range_limit']
+    self.min_pulse=cfg['throttle_actuator_min_pulse']
+    self.max_pulse=cfg['throttle_actuator_max_pulse']
+    self.throttle_zero=cfg['throttle_actuator_zero_pulse']
+    self.throttle_range=cfg['throttle_actuator_range_limit']
 
     self.inWrite = False
     # Create a logfile
     self.logfile = None
     #self.logfile = tempfile.NamedTemporaryFile(prefix='ser_', dir='.', delete=False)
     self.line_re = re.compile('(\{[^}]+\})')
-    self.currentStateDict = {}
+    self.currentStateDict = {"steering": 0, "throttle": 0}
 
-    self.left_pulse = left_pulse
-    self.right_pulse = right_pulse
-    self.max_pulse = max_pulse
-    self.min_pulse = min_pulse
-    self.zero_pulse = zero_pulse
-
-    # Initialise the serial connection from RPi to its controller
+    # Initialize the serial connection from RPi to its controller
     # Arduino mode is set independently
     self.ser = serial.Serial(device, rate)
     time.sleep(1)
     self.ser.flushInput()
+
     t = Thread(target=self.log_serial, args=())
     t.daemon = True
     t.start()
     atexit.register(self.cleanup)
 
-  def update(self, throttle, angle):
+  def update(self, throttle=0, angle=0):
     if not self.ser.is_open:
       print("Serial device not open")
       return
 
-    steering_pulse = map_range(angle,
-                      self.LEFT_ANGLE, self.RIGHT_ANGLE,
-                      self.left_pulse, self.right_pulse)
-    if throttle > 0:
-      throttle_pulse = map_range(throttle,
-                        0, self.MAX_THROTTLE,
-                        self.zero_pulse, self.max_pulse)
+    if angle == 0:
+      steering_pulse = self.steering_zero
+    elif angle < 0:
+      steering_pulse = map_range(angle * self.steering_range,
+                      0, self.LEFT_ANGLE,
+                      self.steering_zero, self.left_pulse)
     else:
-      throttle_pulse = map_range(throttle,
+      steering_pulse = map_range(angle * self.steering_range,
+                      self.RIGHT_ANGLE, 0,
+                      self.right_pulse, self.steering_zero)
+
+    if throttle == 0:
+      throttle_pulse = self.throttle_zero
+    elif throttle > 0:
+      throttle_pulse = map_range(throttle * self.throttle_range,
+                        0, self.MAX_THROTTLE,
+                        self.throttle_zero, self.max_pulse)
+    else:
+      throttle_pulse = map_range(throttle * self.throttle_range,
                         self.MIN_THROTTLE, 0,
-                        self.min_pulse, self.zero_pulse)
+                        self.min_pulse, self.throttle_zero)
 
     while self.inWrite:
-      time.sleep(0.001)
+      time.sleep(0.01)
     self.inWrite = True
+    #print('\r mapped: angle=%d <- %4.2f, throttle=%d <- %4.2f' % (steering_pulse, angle, throttle_pulse, throttle))
+
     try:
-      msg = "T=%d\n" % throttle
-      self.ser.write(msg.encode())
-      self.ser.flush()
-      msg = "S=%d\n" % angle
+      msg = "T=%d\n, S=%d\n" % (throttle_pulse, steering_pulse)
       self.ser.write(msg.encode())
       self.ser.flush()
 
@@ -234,22 +257,35 @@ class SerialPassthroughMixer(BaseMixer):
     try:
       steering_pulse = self.currentStateDict['steering']
       throttle_pulse = self.currentStateDict['throttle']
+      diff_st_pulse = 1. * (steering_pulse - self.steering_zero)
+      # Traditionally right PWM should be greater than zero and left should be less
+      # If not, both the margins will be inverted
+      st_left_margin = self.steering_zero - self.left_pulse
+      st_right_margin = self.right_pulse - self.steering_zero
       if steering_pulse == 0:
         angle = 0.0
       else:
-        angle = (2.*steering_pulse - (self.left_pulse + self.right_pulse))/(self.left_pulse - self.right_pulse)
+        # Always map in fraction left to [-1:0] and right to [0:1]
+        angle1 = diff_st_pulse/st_left_margin
+        angle2 = diff_st_pulse/st_right_margin
+        if st_left_margin > 0:
+          # Pulses are inverted and calc are -ve, > 0 means left else right
+          angle = -angle1 if diff_st_pulse > 0 else -angle2
+        else:
+          # Pulses are conventional, > 0 means right else left
+          angle = angle2 if diff_st_pulse > 0 else angle1
 
       if throttle_pulse == 0:
         throttle = 0.0
-      elif throttle_pulse > self.zero_pulse:
-        throttle = 1.*(throttle_pulse - self.zero_pulse)/(self.max_pulse- self.zero_pulse)
+      elif throttle_pulse > self.throttle_zero:
+        throttle = 1.*(throttle_pulse - self.throttle_zero)/(self.max_pulse - self.throttle_zero)
       else:
-        throttle = 1.*(throttle_pulse - self.zero_pulse)/(self.min_pulse - self.zero_pulse)
+        throttle = 1.*(throttle_pulse - self.throttle_zero)/(self.throttle_zero - self.min_pulse)
 
     except KeyError:
       print('KeyError')
       angle = 0.0
       throttle = 0.0
 
-    #print('angle=%d, throttle=%d' % (angle, throttle))
+    #print('\r mapped: angle=%d -> %4.2f, throttle=%d -> %4.2f' % (steering_pulse, angle, throttle_pulse, throttle))
     return angle, throttle

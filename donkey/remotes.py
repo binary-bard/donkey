@@ -43,6 +43,8 @@ class RemoteClient():
         state = {'img_arr': np.zeros(shape=(120,160)),
                  'angle': 0.0,
                  'throttle': 0.0,
+                 'local_angle': 0.0,
+                 'local_throttle': 0.0,
                  'milliseconds': 0,
                  'drive_mode': 'user'}
 
@@ -72,17 +74,16 @@ class RemoteClient():
         '''
 
         while True:
-            #get latest value from server
+            #get latest value from server and post local values
             resp  = self.decide(self.state['img_arr'], 
-                                self.state['angle'],
-                                self.state['throttle'],
+                                self.state['local_angle'],
+                                self.state['local_throttle'],
                                 self.state['milliseconds'],)
             angle, throttle, drive_mode = resp
 
             self.state['drive_mode'] = drive_mode
-            if self.state['drive_mode'] != 'user_local':
-                self.state['angle'] = angle
-                self.state['throttle'] = throttle
+            self.state['angle'] = angle
+            self.state['throttle'] = throttle
 
             time.sleep(.01)
 
@@ -93,10 +94,12 @@ class RemoteClient():
         '''
         #update the state's image
         self.state['img_arr'] = img_arr
+        self.state['angle'] = angle
+        self.state['throttle'] = throttle
 
         if self.state['drive_mode'] == 'user_local':
-            self.state['angle'] = angle
-            self.state['throttle'] = throttle
+            self.state['local_angle'] = angle
+            self.state['local_throttle'] = throttle
 
         #return last returned last remote response.
         return self.state['angle'], self.state['throttle'], self.state['drive_mode']
@@ -125,13 +128,13 @@ class RemoteClient():
                 r = self.session.post(self.control_url, 
                                 files={'img': dk.utils.arr_to_binary(img_arr), 
                                        'json': json.dumps(data)},
-                                       timeout=0.25)
+                                       timeout=0.5)
                 
             except (requests.ConnectionError) as err:
                 #try to reconnect every 3 seconds
-                print("\n Vehicle could not connect to server. Make sure you've " + 
-                    "started your server and you're referencing the right port.")
-                time.sleep(0.3)
+                #print("\n Vehicle could not connect to server. Make sure you've " + 
+                #    "started your server and you're referencing the right port.")
+                time.sleep(0.5)
             
             except (requests.exceptions.ReadTimeout) as err:
                 #Lower throttle if their is a long lag.
@@ -146,9 +149,8 @@ class RemoteClient():
 
         data = json.loads(r.text)
         drive_mode = str(data['drive_mode'])
-        if drive_mode != 'user_local':
-            angle = float(data['angle'])
-            throttle = float(data['throttle'])
+        angle = float(data['angle'])
+        throttle = float(data['throttle'])
         
         return angle, throttle, drive_mode
 
@@ -369,9 +371,8 @@ class ControlAPI(tornado.web.RequestHandler):
                 pilot_angle, pilot_throttle = V['pilot'].decide(img_arr)
             else:
                 pilot_angle, pilot_throttle = float(data['angle']), float(data['throttle'])
-            #print(V['user_angle'], V['user_throttle'])
             V['user_angle'] = pilot_angle
-            V['user_throttle'] = pilot_angle
+            V['user_throttle'] = pilot_throttle
 
         else:
             print('no pilot')

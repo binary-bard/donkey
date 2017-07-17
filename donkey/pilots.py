@@ -81,10 +81,11 @@ class KerasPositionalCategorical(BasePilot):
         #angle += y[11] - y[12] - 2*y[13] - 3*y[14];
 
         #Positions: lin, lout, mid, rin, rout
-        mult = [ .4, .6,  0., -.4, -.6,  # angle = center
-                 .6, .8,  .4,  .2, -.3,  # angle = left30
-                -.2, .3, -.4, -.6, -.8]  # angle = right30
-        angle =np.inner(y, mult)
+        mult = [ .5, .7,  0., -.5, -.7,  # angle = center
+                 .8, 1.,  .3,  0., -.4,  # angle = left30
+                 .0, .4, -.3, -.8, -1.]  # angle = right30
+        # Our left and right are swapped
+        angle = np.inner(y, mult)
 
         #Accumulate angle by number of samples to keep a moving average
         nSamples = 8

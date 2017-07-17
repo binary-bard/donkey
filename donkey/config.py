@@ -36,16 +36,19 @@ def parse_config(config_path):
     cfg['throttle_actuator_min_pulse'] = t_act.getint('min_pulse')
     cfg['throttle_actuator_max_pulse'] = t_act.getint('max_pulse')
     cfg['throttle_actuator_zero_pulse'] = t_act.getint('zero_pulse')
+    cfg['throttle_actuator_range_limit'] = t_act.getfloat('range_limit', fallback=1.0)
 
     s_act = config['steering_actuator']
     cfg['steering_actuator_channel'] = s_act.getint('channel')
     cfg['steering_actuator_min_pulse'] = s_act.getint('left_pulse')
     cfg['steering_actuator_max_pulse'] = s_act.getint('right_pulse')
+    cfg['steering_actuator_zero_pulse'] = s_act.getint('zero_pulse')
+    cfg['steering_actuator_range_limit'] = s_act.getfloat('range_limit', fallback=1.0)
 
     pilot = config['pilot']
     cfg['pilot_model_path'] = os.path.expanduser(pilot.get('model_path'))
 
-    cfg['serial_device'] = config.get('serial', 'device', fallback='/dev/ttyACM0')
+    cfg['serial_device'] = config.get('serial', 'device', fallback='/dev/serial0')
     cfg['serial_data_rate'] = config.getint('serial', 'data_rate', fallback=115200)
 
     return cfg

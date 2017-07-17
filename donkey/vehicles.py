@@ -39,14 +39,17 @@ class BaseVehicle:
             img_arr = self.camera.capture_arr()
 
             # User mode post our RC data to server?
-            angle, throttle = self.actuator_mixer.getValues()
+            local_angle, local_throttle = self.actuator_mixer.getValues()
 
             angle, throttle, drive_mode = self.remote.decide_threaded(img_arr,
-                                                 angle, 
-                                                 throttle,
+                                                 local_angle, 
+                                                 local_throttle,
                                                  milliseconds)
 
-            if drive_mode == 'local':
+            if drive_mode == 'user_local':
+                angle, throttle = local_angle, local_throttle
+
+            elif drive_mode == 'local':
                 angle, throttle = self.pilot.decide(img_arr)
 
             elif drive_mode == 'local_angle':
